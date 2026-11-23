@@ -2,6 +2,8 @@
 
 A bilingual, dual-tone Astro theme for personal notes, technical writing, and research essays.
 
+Demo: [duoism.vercel.app](https://duoism.vercel.app)
+
 Derived from Vlad Esafev's [Twoism](https://github.com/esafev/twoism), **Duoism** keeps its restrained typographic craft while adding a Sky Light / Klein Blue Dark palette, first-class `中 / EN` bilingual switching, automatic build-time Atkinson image dithering, wide-screen TOC, MathJax equations, a `/links` page, and zero-dependency interactive SVG charts.
 
 ## Features
