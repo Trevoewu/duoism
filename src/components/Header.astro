@@ -1,0 +1,222 @@
+---
+import Portrait from '@/components/Portrait.astro';
+import { PORTRAIT, SITE_TITLE } from '@/consts';
+
+export interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<header>
+  {title ? (
+    <h1>
+      {title === SITE_TITLE && PORTRAIT ? <Portrait {...PORTRAIT} /> : <a href='/'>{title}</a>}
+    </h1>
+  ) : (
+    <a class='back' href='/'>
+      <span class='back-arrow' aria-hidden='true'>↩</span><span data-lang-only='zh'>首页</span><span data-lang-only='en'>Index</span>
+    </a>
+  )}
+  <div class='header-actions'>
+    <button type='button' class='header-toggle theme-toggle' aria-label='切换主题 / Switch theme'>
+      <span class='opt' data-theme-opt='light'>☀&#xFE0E;</span>
+      <span class='opt' data-theme-opt='dark'>☾&#xFE0E;</span>
+    </button>
+    <button type='button' class='header-toggle lang-toggle' aria-label='切换语言 / Switch language'>
+      <span class='opt' data-lang-opt='zh'>中</span>
+      <span class='opt' data-lang-opt='en'>EN</span>
+    </button>
+  </div>
+</header>
+
+<style>
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1em;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.75ch;
+    height: 1.7em;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 1em;
+  }
+
+  a {
+    color: var(--theme-sub-text);
+
+    &:hover {
+      color: var(--theme-sub-text);
+    }
+
+    &:focus-visible {
+      color: var(--theme-bg);
+    }
+  }
+
+  h1 a {
+    text-decoration: none;
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    height: 1.7em;
+    line-height: 1;
+    text-decoration: none;
+  }
+
+  .back > [data-lang-only] {
+    text-decoration: underline;
+    text-decoration-color: var(--theme-link-underline);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .back:hover > [data-lang-only] {
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 2px;
+    }
+  }
+
+  .back:focus-visible > [data-lang-only] {
+    text-decoration-color: transparent;
+  }
+
+  .back-arrow {
+    display: inline-block;
+    margin-inline-end: 1ch;
+  }
+
+  .header-toggle {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    height: 1.7em;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    line-height: 1;
+    font-variant-emoji: text;
+    color: var(--theme-sub-text);
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+
+    &:focus-visible {
+      outline: 2px solid transparent;
+      background-color: var(--theme-text);
+      box-shadow: 0 0 0 2px var(--theme-text);
+      color: var(--theme-bg);
+      text-decoration-color: transparent;
+    }
+
+    &:focus-visible .opt {
+      color: var(--theme-bg);
+      text-decoration-color: transparent;
+    }
+  }
+
+  .opt {
+    color: var(--theme-sub-text);
+    text-decoration: underline;
+    text-decoration-color: var(--theme-link-underline);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  :global(:root[data-theme='dark']) .opt[data-theme-opt='light'],
+  :global(:root:not([data-theme='dark'])) .opt[data-theme-opt='dark'],
+  :global(:root[data-lang='en']) .opt[data-lang-opt='zh'],
+  :global(:root:not([data-lang='en'])) .opt[data-lang-opt='en'] {
+    display: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .header-toggle:hover .opt {
+      color: var(--theme-text);
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 2px;
+    }
+  }
+</style>
+
+<script>
+  const themeToggle = document.querySelector<HTMLButtonElement>('.theme-toggle');
+  const langToggle = document.querySelector<HTMLButtonElement>('.lang-toggle');
+
+  const getCurrentLang = (): 'zh' | 'en' =>
+    document.documentElement.dataset.lang === 'en' ? 'en' : 'zh';
+
+  const getCurrentTheme = (): 'light' | 'dark' =>
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+
+  const syncA11y = (lang = getCurrentLang(), theme = getCurrentTheme()) => {
+    if (langToggle) {
+      langToggle.setAttribute(
+        'aria-label',
+        lang === 'en' ? 'Switch to Chinese (current: English)' : '切换为英文（当前：中文）',
+      );
+    }
+    if (themeToggle) {
+      themeToggle.setAttribute(
+        'aria-label',
+        lang === 'en'
+          ? theme === 'dark'
+            ? 'Switch to light theme (current: dark)'
+            : 'Switch to dark theme (current: light)'
+          : theme === 'dark'
+            ? '切换为浅色主题（当前：深色）'
+            : '切换为深色主题（当前：浅色）',
+      );
+    }
+  };
+
+  syncA11y();
+
+  themeToggle?.addEventListener('click', () => {
+    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // Ignore storage write errors in restricted contexts
+    }
+    syncA11y(getCurrentLang(), next);
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
+  });
+
+  langToggle?.addEventListener('click', () => {
+    const next = getCurrentLang() === 'en' ? 'zh' : 'en';
+    document.documentElement.dataset.lang = next;
+    document.documentElement.lang = next === 'en' ? 'en' : 'zh-CN';
+    try {
+      localStorage.setItem('lang', next);
+    } catch {
+      // Ignore storage write errors in restricted contexts
+    }
+    syncA11y(next, getCurrentTheme());
+    window.dispatchEvent(new CustomEvent('langchange', { detail: { lang: next } }));
+  });
+
+  window.addEventListener('langchange', (event) => {
+    const lang = (event as CustomEvent<{ lang?: string }>).detail?.lang === 'en' ? 'en' : 'zh';
+    syncA11y(lang, getCurrentTheme());
+  });
+
+  window.addEventListener('themechange', (event) => {
+    const theme = (event as CustomEvent<{ theme?: string }>).detail?.theme === 'dark' ? 'dark' : 'light';
+    syncA11y(getCurrentLang(), theme);
+  });
+</script>

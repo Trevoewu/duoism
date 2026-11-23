@@ -1,0 +1,48 @@
+---
+import { LINKS } from '@/consts';
+---
+
+<footer>
+  <span>
+    [↗]: {LINKS.map(({ label, labelZh, href }) => {
+      const isExternal = href.startsWith('http');
+      return (
+        <>
+          <a target={isExternal ? '_blank' : undefined} rel={isExternal ? 'me noopener' : undefined} href={href}>
+            {labelZh ? (
+              <>
+                <span data-lang-only='zh'>{labelZh}</span>
+                <span data-lang-only='en'>{label}</span>
+              </>
+            ) : (
+              label
+            )}
+          </a>,{' '}
+        </>
+      );
+    })}<a target='_blank' href='/rss.xml'>RSS</a>
+  </span>
+</footer>
+
+<style>
+  footer {
+    position: relative;
+
+    padding-top: 1em;
+    margin-top: 3em;
+  }
+
+  footer > span {
+    color: var(--theme-sub-text);
+  }
+
+  footer::before {
+    content: '';
+    position: absolute;
+
+    top: 0;
+    width: 25%;
+
+    border-top: 1px solid var(--theme-sub-text);
+  }
+</style>

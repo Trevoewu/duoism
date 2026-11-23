@@ -1,0 +1,99 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getNoteBilingualTitle, getNoteTranslations } from '@/lib/notes';
+
+export interface Props {
+  prev?: CollectionEntry<'notes'>;
+  next?: CollectionEntry<'notes'>;
+}
+
+const { prev, next } = Astro.props;
+const translations = prev || next ? await getNoteTranslations() : undefined;
+const prevTitle = prev ? getNoteBilingualTitle(prev, translations) : null;
+const nextTitle = next ? getNoteBilingualTitle(next, translations) : null;
+---
+
+<nav>
+  {prev && (
+    <a class='prev' href={`/notes/${prev.id}/`} rel='prev'>
+      <span class='arrow' aria-hidden='true'>←</span>{prevTitle ? (
+        <>
+          <span data-lang-only='zh'>{prevTitle.zh}</span>
+          <span data-lang-only='en'>{prevTitle.en}</span>
+        </>
+      ) : (
+        prev.data.title
+      )}
+    </a>
+  )}
+  {next && (
+    <a class='next' href={`/notes/${next.id}/`} rel='next'>
+      {nextTitle ? (
+        <>
+          <span data-lang-only='zh'>{nextTitle.zh}</span>
+          <span data-lang-only='en'>{nextTitle.en}</span>
+        </>
+      ) : (
+        next.data.title
+      )}<span class='arrow' aria-hidden='true'>→</span>
+    </a>
+  )}
+</nav>
+
+<style>
+  nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2ch;
+
+    margin-top: 3em;
+
+    hyphens: manual;
+  }
+
+  a {
+    position: relative;
+    max-width: 100%;
+    overflow: hidden;
+
+    color: var(--theme-sub-text);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    &:hover {
+      color: var(--theme-text);
+    }
+
+    &:focus-visible {
+      color: var(--theme-bg);
+    }
+  }
+
+  .arrow {
+    position: absolute;
+    inset-block-start: 0;
+  }
+
+  .prev {
+    justify-self: start;
+    padding-inline-start: 2ch;
+
+    .arrow {
+      inset-inline-start: 0;
+    }
+  }
+
+  .next {
+    grid-column: 2;
+    justify-self: end;
+    padding-inline-end: 2ch;
+
+    .arrow {
+      inset-inline-end: 0;
+    }
+  }
+
+  a:only-child {
+    grid-column: 1 / -1;
+  }
+</style>

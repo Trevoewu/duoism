@@ -1,0 +1,53 @@
+---
+import { render } from 'astro:content';
+import NoteLayout from '@/layouts/NoteLayout.astro';
+import { getNoteBilingualTitle, getNotes, getNoteTranslations } from '@/lib/notes';
+
+export async function getStaticPaths() {
+  const notes = await getNotes();
+  const translations = await getNoteTranslations();
+  return notes.map((note, i) => ({
+    params: { slug: note.id },
+    props: {
+      note,
+      pair: translations.get(note.id),
+      bilingualTitle: getNoteBilingualTitle(note, translations),
+      prev: notes[i - 1],
+      next: notes[i + 1],
+    },
+  }));
+}
+
+const { note, pair, bilingualTitle, prev, next } = Astro.props;
+const ogImage = /[^\x00-\x7F]/.test(note.data.title) ? '/og/index.png' : `/og/${note.id}.png`;
+
+const hasPair = Boolean(pair?.zh && pair?.en);
+const renderedMain = hasPair ? null : await render(note);
+const renderedZh = hasPair && pair?.zh ? await render(pair.zh) : null;
+const renderedEn = hasPair && pair?.en ? await render(pair.en) : null;
+---
+
+<NoteLayout
+  frontmatter={note.data}
+  titleZh={bilingualTitle?.zh}
+  titleEn={bilingualTitle?.en}
+  image={ogImage}
+  headings={renderedMain?.headings}
+  headingsZh={renderedZh?.headings}
+  headingsEn={renderedEn?.headings}
+  {prev}
+  {next}
+>
+  {hasPair && renderedZh && renderedEn ? (
+    <>
+      <div data-lang-only="zh">
+        <renderedZh.Content />
+      </div>
+      <div data-lang-only="en">
+        <renderedEn.Content />
+      </div>
+    </>
+  ) : (
+    renderedMain && <renderedMain.Content />
+  )}
+</NoteLayout>

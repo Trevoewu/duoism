@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Twoism",
+    "description": "The original Astro template by Vlad Esafev that inspired Duoism.",
+    "url": "https://twoism.pages.dev",
+    "avatar": "/avatars/twoism.png"
+  },
+  {
+    "name": "Astro",
+    "description": "The web framework for content-driven websites.",
+    "url": "https://astro.build",
+    "avatar": "/avatars/astro.png"
+  }
+]

@@ -1,0 +1,54 @@
+---
+import { formatDate } from '@/lib/date';
+
+export interface Props {
+  title: string;
+  titleZh?: string;
+  titleEn?: string;
+  pubDate?: Date;
+  updatedDate?: Date;
+}
+
+const { title, titleZh, titleEn, pubDate, updatedDate } = Astro.props;
+const resolvedZh = titleZh ?? title;
+const resolvedEn = titleEn ?? title;
+const isBilingualTitle = resolvedZh !== resolvedEn;
+---
+
+<section>
+  <h1>
+    {isBilingualTitle ? (
+      <>
+        <span data-lang-only='zh'>{resolvedZh}</span>
+        <span data-lang-only='en'>{resolvedEn}</span>
+      </>
+    ) : (
+      title
+    )}
+  </h1>
+  {pubDate && (
+    <span class='meta'>
+      <span data-lang-only='zh'>
+        {formatDate(pubDate, 'zh')}{updatedDate && `（更新于 ${formatDate(updatedDate, 'zh')}）`}
+      </span>
+      <span data-lang-only='en'>
+        {formatDate(pubDate, 'en')}{updatedDate && ` (updated ${formatDate(updatedDate, 'en')})`}
+      </span>
+    </span>
+  )}
+</section>
+
+<style>
+  section {
+    margin-block-end: 2em;
+  }
+
+  section h1 {
+    margin-block: 1em .5em;
+    font-size: 1.1em;
+  }
+
+  section .meta {
+    color: var(--theme-sub-text);
+  }
+</style>

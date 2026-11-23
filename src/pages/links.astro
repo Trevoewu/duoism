@@ -1,0 +1,175 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import NoteHeader from '@/components/NoteHeader.astro';
+import DitheredImage from '@/components/DitheredImage.astro';
+import { SITE_AVATAR, SITE_DESCRIPTION, SITE_DESCRIPTION_ZH, SITE_TITLE, SITE_URL } from '@/consts';
+import linksData from '@/data/links.json';
+import { ensureRemoteDitheredImage } from '@/lib/dither';
+
+const links = await Promise.all(
+  linksData.map(async (item) => {
+    const dithered = await ensureRemoteDitheredImage(item.avatar, {
+      keyPrefix: item.name,
+      squareSize: 96,
+      scale: 2,
+    });
+    return {
+      ...item,
+      avatarLight: dithered.lightSrc,
+      avatarDark: dithered.darkSrc,
+    };
+  }),
+);
+---
+
+<BaseLayout headProps={{ title: 'Links', titleZh: '友链', titleEn: 'Links', description: 'Friends, inspirations, and link exchange.', image: '/og/links.png' }}>
+  <NoteHeader title="Links" titleZh="友链" titleEn="Links" />
+
+  <section class="links-section">
+    <ul class="links-list">
+      {links.map((item) => (
+        <li class="link-item">
+          <div class="link-avatar">
+            <DitheredImage
+              light={item.avatarLight}
+              dark={item.avatarDark}
+              alt={item.name}
+              width={44}
+              height={44}
+            />
+          </div>
+          <div class="link-meta">
+            <a href={item.url} target="_blank" rel="noopener noreferrer">
+              {item.name}
+            </a>
+            <p>{item.description}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <hr />
+
+  <section class="exchange-section">
+    <div data-lang-only="zh">
+      <h2>交换友链</h2>
+      <p>如果你想与本站交换友链，欢迎通过 GitHub 或邮件联系。</p>
+
+      <h3>本站信息</h3>
+      <ul class="info-list">
+        <li><code>Name</code>: {SITE_TITLE}</li>
+        <li><code>Link</code>: <a href={SITE_URL}>{SITE_URL}</a></li>
+        <li><code>Avatar</code>: <a href={SITE_AVATAR}>{SITE_AVATAR}</a></li>
+        <li><code>Desc</code>: {SITE_DESCRIPTION_ZH}</li>
+      </ul>
+
+      <h3>申请格式</h3>
+      <pre><code>- Name: 你的博客名称
+  Link: 你的博客网址 (需支持 HTTPS)
+  Avatar: 你的头像链接
+  Desc: 一句简短的博客描述</code></pre>
+    </div>
+
+    <div data-lang-only="en">
+      <h2>Link Exchange</h2>
+      <p>If you'd like to exchange links, feel free to reach out via GitHub or email.</p>
+
+      <h3>Site Info</h3>
+      <ul class="info-list">
+        <li><code>Name</code>: {SITE_TITLE}</li>
+        <li><code>Link</code>: <a href={SITE_URL}>{SITE_URL}</a></li>
+        <li><code>Avatar</code>: <a href={SITE_AVATAR}>{SITE_AVATAR}</a></li>
+        <li><code>Desc</code>: {SITE_DESCRIPTION}</li>
+      </ul>
+
+      <h3>Application Format</h3>
+      <pre><code>- Name: Your blog name
+  Link: Your blog URL (HTTPS required)
+  Avatar: Your avatar URL
+  Desc: A short description of your blog</code></pre>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .links-list {
+    display: grid;
+    gap: 1.5em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .link-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 1.75ch;
+  }
+
+  .link-avatar :global(img) {
+    display: block;
+    width: 44px;
+    height: 44px;
+    margin-top: 0.15em;
+  }
+
+  .link-meta {
+    min-width: 0;
+  }
+
+  .link-meta p {
+    margin-top: 0.25em;
+    color: var(--theme-sub-text);
+    overflow-wrap: anywhere;
+  }
+
+  hr {
+    margin-block: 2.5em;
+  }
+
+  .exchange-section h2,
+  .exchange-section h3,
+  .exchange-section p {
+    margin-block: 1em;
+  }
+
+  .exchange-section h2 {
+    font-size: 1.15em;
+    font-weight: 400;
+  }
+
+  .exchange-section h3 {
+    margin-block-start: 1.75em;
+    font-size: 1em;
+    font-weight: 400;
+    color: var(--theme-sub-text);
+  }
+
+  .info-list {
+    display: grid;
+    gap: 0.4em;
+    padding-inline-start: 1.5em;
+  }
+
+  code {
+    padding: 0.2rem 0.33rem;
+    margin-inline: -0.125em;
+    font-family: inherit;
+    font-size: 0.85em;
+    background-color: var(--theme-code-block);
+  }
+
+  pre {
+    margin-block: 1.25em;
+    padding: 1.25rem;
+    overflow: auto hidden;
+    font-family: inherit;
+    background-color: var(--theme-code-block);
+  }
+
+  pre > code {
+    all: unset;
+  }
+</style>

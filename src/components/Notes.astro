@@ -1,0 +1,57 @@
+---
+import { getNoteBilingualTitle, getNotes, getNoteTranslations } from '@/lib/notes';
+
+const notes = await getNotes();
+const translations = await getNoteTranslations();
+const notesByYear = Map.groupBy(notes, (note) => note.data.pubDate.getUTCFullYear());
+---
+
+<ul class="years">
+  {[...notesByYear].map(([year, yearNotes]) => (
+    <li>
+      <h3>{year}</h3>
+      <ul>
+        {yearNotes.map((note) => {
+          const bilingualTitle = getNoteBilingualTitle(note, translations);
+          return (
+            <li>
+              <a href={`/notes/${note.id}/`}>
+                {bilingualTitle ? (
+                  <>
+                    <span data-lang-only="zh">{bilingualTitle.zh}</span>
+                    <span data-lang-only="en">{bilingualTitle.en}</span>
+                  </>
+                ) : (
+                  note.data.title
+                )}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </li>
+  ))}
+</ul>
+
+<style>
+  ul {
+    display: grid;
+    gap: .5em;
+    padding: 0;
+    list-style: none;
+    hyphens: manual;
+  }
+
+  .years > li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 2ch;
+  }
+
+  h3 {
+    color: var(--theme-sub-text);
+
+    font-size: 1em;
+    font-weight: 400;
+  }
+</style>

@@ -1,0 +1,90 @@
+---
+title: "认识 Duoism：双语、双色调与自动抖动图像"
+title_zh: "认识 Duoism：双语、双色调与自动抖动图像"
+title_en: "Introducing Duoism: Bilingual, Dual-Tone, Auto-Dithered"
+description: "一份快速上手指南，展示 Duoism 的双语文章配对、自动图像抖动、数学公式、目录与交互图表。"
+pubDate: 2026-11-23T08:00:00Z
+published: true
+lang: zh
+---
+
+import ResearchPlot from '@/components/charts/ResearchPlot.astro';
+
+**Duoism** 基于 Vlad Esafev 的 [Twoism](https://github.com/esafev/twoism) 扩展而来，面向个人写作、技术随笔与研究笔记。点击右上角的 `☀ / ☾` 与 `中 / EN`，你可以即时体验整站的主题与语言切换。
+
+## 双语写作与自动配对
+
+Duoism 支持两种双语文章组织方式：
+
+1. **文件名后缀自动配对**：例如本文由 `introducing-duoism.mdx` 与 `introducing-duoism.en.mdx` 组成，系统会自动聚合为同一篇笔记，并在切换语言时无缝同步标题、正文与侧边目录。
+2. **显式指定关系**：在译文 frontmatter 中填写 `translationOf: <主文章 slug>` 和 `lang: zh | en`。
+
+单语文章同样可以正常发布，无需额外配置。
+
+## 构建期自动 Atkinson 抖动图像
+
+你只需要像平常一样在 Markdown 或 MDX 中插入相对路径图片，Duoism 会在开发与构建阶段自动调用 `sharp` 生成浅色与深色两套 Atkinson 抖动 WebP 图像，并输出响应式 `<picture>` 标签：
+
+![构建期自动生成的 Atkinson 抖动波形示例](./assets/wave-study.png)
+
+> 缓存结果默认写入被 `.gitignore` 忽略的 `public/_dithered/` 目录，并在 `astro:build:done` 阶段自动同步到构建产物。
+
+## 数学排版与代码块
+
+内置 `remark-math` 与 `rehype-mathjax`，支持行内公式 $E = mc^2$ 以及块级公式：
+
+$$
+\mathcal{L}(\theta) = -\frac{1}{N} \sum_{i=1}^{N} \log p_\theta(y_i \mid x_i) + \lambda \|\theta\|_2^2
+$$
+
+代码块使用与主题色协调的 CSS Variables Shiki 配色：
+
+```ts
+export function greet(lang: 'zh' | 'en') {
+  return lang === 'zh' ? '你好，Duoism。' : 'Hello, Duoism.';
+}
+```
+
+## 交互式 SVG 研究图表
+
+在 `.mdx` 笔记中可以直接引入零第三方图表库依赖的 `ResearchPlot` 组件，支持鼠标悬停、点击锁定与键盘左右方向键浏览：
+
+<ResearchPlot
+  id="demo-scaling-zh"
+  title="示例：样本量与验证集得分"
+  xLabel="训练样本量（千）"
+  yLabel="F1 分数"
+  xTicks={[1, 2, 4, 8, 16]}
+  yTicks={[60, 70, 80, 90, 100]}
+  lang="zh"
+  series={[
+    {
+      label: '基线模型',
+      tone: 'slate',
+      points: [
+        { x: 1, y: 66.2, key: '1k', value: '66.2' },
+        { x: 2, y: 72.8, key: '2k', value: '72.8' },
+        { x: 4, y: 78.4, key: '4k', value: '78.4' },
+        { x: 8, y: 82.1, key: '8k', value: '82.1' },
+        { x: 16, y: 84.0, key: '16k', value: '84.0' },
+      ],
+    },
+    {
+      label: '改进方案',
+      tone: 'blue',
+      points: [
+        { x: 1, y: 71.5, key: '1k', value: '71.5' },
+        { x: 2, y: 79.1, key: '2k', value: '79.1' },
+        { x: 4, y: 85.6, key: '4k', value: '85.6' },
+        { x: 8, y: 90.4, key: '8k', value: '90.4' },
+        { x: 16, y: 93.2, key: '16k', value: '93.2', annotation: '+9.2' },
+      ],
+    },
+  ]}
+/>
+
+## 自定义你的站点
+
+- 修改 `src/consts.ts` 中的站点名称、描述、链接与头像设置
+- 编辑 `src/content/intro.mdx` 与 `src/content/intro.en.mdx` 自定义首页简介
+- 在 `src/data/links.json` 中维护你的友链，远程与本地头像都会自动抖动化

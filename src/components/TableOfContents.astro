@@ -1,0 +1,271 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+export interface Props {
+  headings?: MarkdownHeading[];
+  headingsZh?: MarkdownHeading[];
+  headingsEn?: MarkdownHeading[];
+}
+
+const { headings = [], headingsZh, headingsEn } = Astro.props;
+
+const filterTopHeadings = (list: MarkdownHeading[]) => {
+  const candidates = list.filter((h) => h.depth >= 2 && h.slug !== 'footnote-label');
+  const minDepth = candidates.length > 0 ? Math.min(...candidates.map((h) => h.depth)) : 2;
+  return candidates.filter((h) => h.depth === minDepth);
+};
+
+const isBilingual = Boolean(headingsZh || headingsEn);
+const tocHeadings = filterTopHeadings(headings);
+const tocHeadingsZh = filterTopHeadings(headingsZh ?? headings);
+const tocHeadingsEn = filterTopHeadings(headingsEn ?? headings);
+const showZh = isBilingual && tocHeadingsZh.length >= 2;
+const showEn = isBilingual && tocHeadingsEn.length >= 2;
+const showToc = isBilingual ? showZh || showEn : tocHeadings.length >= 2;
+const asideLangOnly = isBilingual && showZh !== showEn ? (showZh ? 'zh' : 'en') : undefined;
+---
+
+{
+  showToc && (
+    <aside class='toc' aria-label='Table of contents' data-lang-only={asideLangOnly}>
+      <h2 class='toc-title'>
+        <span data-lang-only='zh'>目录:</span>
+        <span data-lang-only='en'>Contents:</span>
+      </h2>
+      <nav class='toc-nav' aria-label='On this page'>
+        {isBilingual ? (
+          <>
+            {showZh && (
+              <ul class='toc-list' data-lang-only={showEn ? 'zh' : undefined}>
+                {tocHeadingsZh.map((heading) => (
+                  <li>
+                    <a href={`#${heading.slug}`}>{heading.text}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {showEn && (
+              <ul class='toc-list' data-lang-only={showZh ? 'en' : undefined}>
+                {tocHeadingsEn.map((heading) => (
+                  <li>
+                    <a href={`#${heading.slug}`}>{heading.text}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : (
+          <ul class='toc-list'>
+            {tocHeadings.map((heading) => (
+              <li>
+                <a href={`#${heading.slug}`}>{heading.text}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </nav>
+    </aside>
+  )
+}
+
+<style>
+  .toc {
+    display: none;
+  }
+
+  @media (width >= 1200px) {
+    .toc {
+      position: fixed;
+      top: 7em;
+      right: clamp(2.5em, 4vw, 5em);
+      z-index: 10;
+
+      display: flex;
+      flex-direction: column;
+      width: 17em;
+      max-height: calc(100vh - 10em);
+      max-height: calc(100dvh - 10em);
+    }
+  }
+
+  @media print {
+    .toc {
+      display: none;
+    }
+  }
+
+  .toc-title {
+    flex-shrink: 0;
+    margin-bottom: 0.75em;
+
+    color: var(--theme-sub-text);
+
+    font-size: 0.85em;
+    font-weight: 400;
+  }
+
+  .toc-nav {
+    position: relative;
+    overflow-y: auto;
+    padding-inline: 3px;
+    margin-inline: -3px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-code-block) transparent;
+  }
+
+  .toc-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    border-inline-start: 1px solid var(--theme-code-block);
+  }
+
+  .toc-list li {
+    margin: 0;
+  }
+
+  .toc-list a {
+    position: relative;
+    display: block;
+    padding-block: 0.22em;
+    padding-inline-start: 1em;
+
+    color: var(--theme-sub-text);
+    font-size: 0.85em;
+    line-height: 1.45;
+    text-decoration: none;
+
+    overflow-wrap: anywhere;
+    hyphens: manual;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .toc-list a:hover {
+      color: var(--theme-text);
+      text-decoration: underline;
+      text-decoration-color: var(--theme-link-underline);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+  }
+
+  .toc-list a:focus-visible {
+    color: var(--theme-bg);
+  }
+
+  .toc-list a[aria-current='location'] {
+    color: var(--theme-text);
+  }
+
+  .toc-list a[aria-current='location']::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -1px;
+    inset-block: 0.28em;
+    width: 2px;
+    background-color: var(--theme-text);
+  }
+</style>
+
+<script>
+  const toc = document.querySelector<HTMLElement>('.toc');
+  const tocNav = toc?.querySelector<HTMLElement>('.toc-nav');
+  const links = Array.from(toc?.querySelectorAll<HTMLAnchorElement>('.toc-list a') ?? []);
+
+  if (toc && tocNav && links.length > 0) {
+    const article = document.querySelector<HTMLElement>('article');
+    const items = links
+      .map((link) => {
+        const hash = link.getAttribute('href');
+        const id = hash ? decodeURIComponent(hash.slice(1)) : '';
+        if (!id) return null;
+
+        const langScope = link.closest<HTMLElement>('[data-lang-only]')?.dataset.langOnly;
+        const scopeRoot = langScope && article
+          ? article.querySelector<HTMLElement>(`[data-lang-only="${langScope}"]`) ?? document
+          : document;
+        const target = scopeRoot.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`) ?? document.getElementById(id);
+        return target ? { link, target } : null;
+      })
+      .filter((item): item is { link: HTMLAnchorElement; target: HTMLElement } => item !== null);
+
+    if (items.length > 0) {
+      let activeLink: HTMLAnchorElement | null = null;
+      let rafId = 0;
+
+      const setActive = (nextLink: HTMLAnchorElement | null) => {
+        if (nextLink === activeLink) return;
+        if (activeLink) {
+          activeLink.removeAttribute('aria-current');
+        }
+        activeLink = nextLink;
+        if (!activeLink) return;
+
+        activeLink.setAttribute('aria-current', 'location');
+
+        const linkTop = activeLink.offsetTop;
+        const linkBottom = linkTop + activeLink.offsetHeight;
+        const viewTop = tocNav.scrollTop;
+        const viewBottom = viewTop + tocNav.clientHeight;
+
+        if (linkTop < viewTop) {
+          tocNav.scrollTop = Math.max(0, linkTop - 8);
+        } else if (linkBottom > viewBottom) {
+          tocNav.scrollTop = linkBottom - tocNav.clientHeight + 8;
+        }
+      };
+
+      const updateActive = () => {
+        rafId = 0;
+        if (window.getComputedStyle(toc).display === 'none') return;
+
+        const visibleItems = items.filter(
+          (item) => item.link.getClientRects().length > 0 && item.target.getClientRects().length > 0,
+        );
+        if (visibleItems.length === 0) {
+          setActive(null);
+          return;
+        }
+
+        const threshold = 120;
+        let current = visibleItems[0].link;
+
+        for (const item of visibleItems) {
+          if (item.target.getBoundingClientRect().top <= threshold) {
+            current = item.link;
+          } else {
+            break;
+          }
+        }
+
+        const atBottom =
+          window.innerHeight + Math.ceil(window.scrollY) >=
+          document.documentElement.scrollHeight - 2;
+        if (atBottom) {
+          current = visibleItems[visibleItems.length - 1].link;
+        }
+
+        setActive(current);
+      };
+
+      const scheduleUpdate = () => {
+        if (!rafId) {
+          rafId = window.requestAnimationFrame(updateActive);
+        }
+      };
+
+      for (const item of items) {
+        item.link.addEventListener('click', () => {
+          setActive(item.link);
+        });
+      }
+
+      window.addEventListener('scroll', scheduleUpdate, { passive: true });
+      window.addEventListener('resize', scheduleUpdate, { passive: true });
+      window.addEventListener('hashchange', scheduleUpdate);
+      window.addEventListener('langchange', scheduleUpdate);
+      updateActive();
+    }
+  }
+</script>

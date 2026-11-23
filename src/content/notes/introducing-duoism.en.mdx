@@ -1,0 +1,89 @@
+---
+title: "Introducing Duoism: Bilingual, Dual-Tone, Auto-Dithered"
+description: "A quick tour of Duoism's bilingual note pairing, automatic image dithering, math typesetting, TOC, and interactive SVG charts."
+pubDate: 2026-11-23T08:00:00Z
+published: true
+lang: en
+translationOf: introducing-duoism
+---
+
+import ResearchPlot from '@/components/charts/ResearchPlot.astro';
+
+**Duoism** is an Astro theme derived from Vlad Esafev's [Twoism](https://github.com/esafev/twoism), tailored for personal writing, technical essays, and research notes. Click `☀ / ☾` and `中 / EN` in the top-right corner to toggle the palette and language instantly.
+
+## Bilingual Notes & Automatic Pairing
+
+Duoism supports two ways to publish bilingual notes:
+
+1. **Filename suffix pairing**: This post consists of `introducing-duoism.mdx` and `introducing-duoism.en.mdx`. They merge into a single URL, syncing title, body, and table of contents whenever you switch languages.
+2. **Explicit frontmatter linking**: Set `translationOf: <base-slug>` and `lang: zh | en` in a companion file.
+
+Monolingual notes work out of the box with no extra configuration.
+
+## Automatic Build-Time Atkinson Dithering
+
+Drop any local image next to your Markdown or MDX note and reference it via a relative path. Duoism automatically generates lossless light and dark Atkinson-dithered WebP variants with `sharp` and emits a theme-aware `<picture>` element:
+
+![Example Atkinson-dithered wave study generated at build time](./assets/wave-study.png)
+
+> Generated assets are cached in `public/_dithered/` (git-ignored) and synced automatically into the final build output via an Astro integration hook.
+
+## Math Typesetting & Code Blocks
+
+Powered by `remark-math` and `rehype-mathjax`, both inline math like $E = mc^2$ and display equations render cleanly at build time:
+
+$$
+\mathcal{L}(\theta) = -\frac{1}{N} \sum_{i=1}^{N} \log p_\theta(y_i \mid x_i) + \lambda \|\theta\|_2^2
+$$
+
+Code blocks inherit theme-matched CSS variable tokens from Shiki:
+
+```ts
+export function greet(lang: 'zh' | 'en') {
+  return lang === 'zh' ? '你好，Duoism。' : 'Hello, Duoism.';
+}
+```
+
+## Interactive SVG Research Charts
+
+MDX posts can embed the zero-dependency `ResearchPlot` component, featuring hover inspection, click pinning, and arrow-key navigation:
+
+<ResearchPlot
+  id="demo-scaling-en"
+  title="Example: Validation Score vs. Sample Size"
+  xLabel="Training Samples (k)"
+  yLabel="F1 Score"
+  xTicks={[1, 2, 4, 8, 16]}
+  yTicks={[60, 70, 80, 90, 100]}
+  lang="en"
+  series={[
+    {
+      label: 'Baseline',
+      tone: 'slate',
+      points: [
+        { x: 1, y: 66.2, key: '1k', value: '66.2' },
+        { x: 2, y: 72.8, key: '2k', value: '72.8' },
+        { x: 4, y: 78.4, key: '4k', value: '78.4' },
+        { x: 8, y: 82.1, key: '8k', value: '82.1' },
+        { x: 16, y: 84.0, key: '16k', value: '84.0' },
+      ],
+    },
+    {
+      label: 'Proposed',
+      tone: 'blue',
+      points: [
+        { x: 1, y: 71.5, key: '1k', value: '71.5' },
+        { x: 2, y: 79.1, key: '2k', value: '79.1' },
+        { x: 4, y: 85.6, key: '4k', value: '85.6' },
+        { x: 8, y: 90.4, key: '8k', value: '90.4' },
+        { x: 16, y: 93.2, key: '16k', value: '93.2', annotation: '+9.2' },
+      ],
+    },
+  ]}
+/>
+
+## Customize Your Site
+
+- Edit site metadata, portrait, and footer links in `src/consts.ts`
+- Update the homepage bio in `src/content/intro.mdx` and `src/content/intro.en.mdx`
+- Maintain friend links in `src/data/links.json` — both remote and local avatars are dithered automatically

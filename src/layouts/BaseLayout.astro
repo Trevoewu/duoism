@@ -1,0 +1,31 @@
+---
+import Head, { type Props as HeadProps } from '@/components/Head.astro';
+import Header from '@/components/Header.astro';
+
+export interface Props {
+  title?: string;
+  headProps?: HeadProps;
+}
+
+const { title, headProps } = Astro.props;
+---
+
+<html lang='zh-CN'>
+  <Head {...headProps} />
+
+  <body>
+    <Header {title} />
+
+    <main>
+      <slot />
+    </main>
+
+    <slot name="footer" />
+  </body>
+</html>
+
+<style>
+  main {
+    margin: 3em 0;
+  }
+</style>

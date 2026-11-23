@@ -1,0 +1,220 @@
+---
+import type { MarkdownHeading } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+import NoteHeader from '@/components/NoteHeader.astro';
+import NoteNav from '@/components/NoteNav.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
+
+export interface Props {
+  frontmatter: CollectionEntry<'notes'>['data'];
+  titleZh?: string;
+  titleEn?: string;
+  image?: string;
+  headings?: MarkdownHeading[];
+  headingsZh?: MarkdownHeading[];
+  headingsEn?: MarkdownHeading[];
+  prev?: CollectionEntry<'notes'>;
+  next?: CollectionEntry<'notes'>;
+}
+
+const {
+  frontmatter: { title, description, pubDate, updatedDate },
+  titleZh,
+  titleEn,
+  image,
+  headings = [],
+  headingsZh,
+  headingsEn,
+  prev,
+  next,
+} = Astro.props;
+---
+
+<BaseLayout headProps={{ title, titleZh, titleEn, description, image }}>
+  <NoteHeader {title} {titleZh} {titleEn} {pubDate} {updatedDate} />
+
+  <TableOfContents {headings} {headingsZh} {headingsEn} />
+
+  <article>
+    <slot />
+  </article>
+
+  <NoteNav {prev} {next} />
+</BaseLayout>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  article {
+    --astro-code-background: var(--theme-code-block);
+    --astro-code-foreground: var(--theme-text);
+    --astro-code-token-keyword: var(--theme-text);
+    --astro-code-token-function: var(--theme-text);
+    --astro-code-token-constant: var(--theme-text);
+    --astro-code-token-parameter: var(--theme-text);
+    --astro-code-token-link: var(--theme-text);
+    --astro-code-token-string: var(--theme-sub-text);
+    --astro-code-token-string-expression: var(--theme-sub-text);
+    --astro-code-token-comment: var(--theme-sub-text);
+    --astro-code-token-punctuation: var(--theme-sub-text);
+
+    :global(p, h2, h3, h4) {
+      margin-block: 1em;
+    }
+
+    :global(h2, h3, h4) {
+      margin-block-start: 2em;
+    }
+
+    :global(h2, h3, h4, h5) {
+      scroll-margin-top: 2em;
+    }
+
+    :global(a[id]) {
+      scroll-margin-top: 2em;
+    }
+
+    :global(h2:target),
+    :global(h3:target),
+    :global(h4:target),
+    :global(h5:target),
+    :global(li:target),
+    :global(li:has(> a:target)) {
+      scroll-margin-top: 2em;
+      border-radius: 2px;
+      animation: target-highlight 2s ease-out;
+    }
+
+    :global(h2) {
+      font-size: 1.3em;
+    }
+
+    :global(h3) {
+      font-size: 1.1em;
+    }
+
+    :global(h4) {
+      font-size: 1em;
+      color: var(--theme-sub-text);
+    }
+
+    :global(ul, ol) {
+      margin-block: 1em;
+      padding-inline-start: 1.6em;
+    }
+
+    :global(li + li) {
+      margin-top: 0.4em;
+    }
+
+    :global(table) {
+      display: block;
+      width: 100%;
+      margin-block: 1.5em;
+      border-collapse: collapse;
+      overflow-x: auto;
+      font-size: 0.92em;
+    }
+
+    :global(th, td) {
+      padding: 0.55em 0.9em;
+      border-bottom: 1px solid var(--theme-code-block);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    :global(th) {
+      background-color: var(--theme-code-block);
+      font-weight: 700;
+    }
+
+    :global(mjx-container) {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    :global(mjx-container[display='true']) {
+      margin-block: 1.25em;
+    }
+
+    :global(.footnotes) {
+      margin-top: 2.5em;
+      padding-top: 1em;
+      border-top: 1px solid var(--theme-code-block);
+      color: var(--theme-sub-text);
+      font-size: 0.92em;
+    }
+
+    :global(img) {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    :global(figcaption) {
+      color: var(--theme-sub-text);
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+
+    :global(blockquote) {
+      display: flex;
+      flex-direction: column;
+      padding-inline-start: 1em;
+
+      border-inline-start: 4px solid var(--theme-code-block);
+    }
+
+    :global(code) {
+      padding: 0.2rem 0.33rem;
+      margin-inline: -0.125em;
+
+      font-family: inherit;
+      font-size: 0.85em;
+      overflow-wrap: anywhere;
+
+      background-color: var(--theme-code-block);
+    }
+
+    :global(pre) {
+      --padding-inline: 1.25rem;
+      margin-block: 1.5em;
+      padding: 1.25rem var(--padding-inline);
+      padding-inline-end: calc(var(--padding-inline) * 2);
+      overflow: auto hidden;
+
+      font-family: inherit;
+
+      @media (width <= 480px) {
+        --padding-inline: 1em;
+        padding-block: 1em;
+      }
+    }
+
+    :global(pre > code) {
+      all: unset;
+    }
+  }
+
+  @keyframes target-highlight {
+    0% {
+      background-color: var(--theme-code-block);
+      box-shadow: 0 0 0 0.25em var(--theme-code-block);
+    }
+    30% {
+      background-color: var(--theme-code-block);
+      box-shadow: 0 0 0 0.25em var(--theme-code-block);
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: 0 0 0 0.25em transparent;
+    }
+  }
+</style>

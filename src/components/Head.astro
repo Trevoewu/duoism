@@ -1,0 +1,182 @@
+---
+import '@/styles/global.css';
+import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
+
+export interface Props {
+  title?: string;
+  titleZh?: string;
+  titleEn?: string;
+  description?: string;
+  image?: string;
+}
+
+const { title = SITE_TITLE, titleZh, titleEn, description = SITE_DESCRIPTION, image } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<head>
+  <!-- Global Metadata -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+
+  <!-- Fonts -->
+  <link rel="preload" href="/fonts/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ibm/plex-sans-sc@1.1.0/fonts/split/woff2/hinted/IBMPlexSansSC-Regular.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ibm/plex-sans-sc@1.1.0/fonts/split/woff2/hinted/IBMPlexSansSC-Bold.css" />
+
+  <!-- Primary Meta Tags -->
+  <title data-title-zh={titleZh} data-title-en={titleEn}>{title}</title>
+  <script is:inline>
+    (() => {
+      const readLang = () => {
+        try {
+          return localStorage.getItem('lang') === 'en' ? 'en' : 'zh';
+        } catch {
+          return 'zh';
+        }
+      };
+
+      const readStoredTheme = () => {
+        try {
+          const saved = localStorage.getItem('theme');
+          return saved === 'light' || saved === 'dark' ? saved : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const colorSchemeQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+      const getSystemTheme = () => (colorSchemeQuery?.matches ? 'dark' : 'light');
+      const resolveTheme = () => readStoredTheme() ?? getSystemTheme();
+
+      const syncPictureSources = (theme, root = document) => {
+        if (!root || typeof root.querySelectorAll !== 'function') return;
+        const media = theme === 'dark' ? 'all' : 'not all';
+        const sources = root.matches?.('picture > source')
+          ? [root]
+          : root.querySelectorAll('picture > source');
+
+        sources.forEach((source) => {
+          if (
+            source.dataset.themeManaged === '1' ||
+            /prefers-color-scheme/i.test(source.getAttribute('media') || '')
+          ) {
+            source.dataset.themeManaged = '1';
+            if (source.getAttribute('media') !== media) {
+              source.setAttribute('media', media);
+            }
+          }
+        });
+      };
+
+      const applyLang = (lang, emit = false) => {
+        const prev = document.documentElement.dataset.lang;
+        document.documentElement.dataset.lang = lang;
+        document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+
+        const titleEl = document.querySelector('title');
+        if (titleEl) {
+          const nextTitle = lang === 'en' ? titleEl.dataset.titleEn : titleEl.dataset.titleZh;
+          if (nextTitle) {
+            document.title = nextTitle;
+          }
+        }
+
+        if (emit && prev !== lang) {
+          window.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+        }
+      };
+
+      const applyTheme = (theme, emit = false) => {
+        const prev = document.documentElement.dataset.theme;
+        document.documentElement.dataset.theme = theme;
+        syncPictureSources(theme);
+
+        if (emit && prev !== theme) {
+          window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+        }
+      };
+
+      applyLang(readLang());
+      applyTheme(resolveTheme());
+
+      if (typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver((mutations) => {
+          const theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === 1) {
+                syncPictureSources(theme, node);
+              }
+            }
+          }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        document.addEventListener('DOMContentLoaded', () => {
+          syncPictureSources(resolveTheme());
+          observer.disconnect();
+        }, { once: true });
+      }
+
+      colorSchemeQuery?.addEventListener('change', (event) => {
+        if (!readStoredTheme()) {
+          applyTheme(event.matches ? 'dark' : 'light', true);
+        }
+      });
+
+      window.addEventListener('pageshow', () => {
+        applyLang(readLang(), true);
+        applyTheme(resolveTheme(), true);
+      });
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'lang') {
+          applyLang(event.newValue === 'en' ? 'en' : 'zh', true);
+        } else if (event.key === 'theme') {
+          const next =
+            event.newValue === 'light' || event.newValue === 'dark'
+              ? event.newValue
+              : getSystemTheme();
+          applyTheme(next, true);
+        }
+      });
+
+      window.addEventListener('langchange', (event) => {
+        const lang = event.detail?.lang === 'en' ? 'en' : 'zh';
+        const titleEl = document.querySelector('title');
+        if (titleEl) {
+          const nextTitle = lang === 'en' ? titleEl.dataset.titleEn : titleEl.dataset.titleZh;
+          if (nextTitle) {
+            document.title = nextTitle;
+          }
+        }
+      });
+
+      window.addEventListener('themechange', (event) => {
+        const theme = event.detail?.theme === 'dark' ? 'dark' : 'light';
+        syncPictureSources(theme);
+      });
+    })();
+  </script>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalURL} />
+
+  <!-- Sitemap -->
+  <link rel="sitemap" href="/sitemap-index.xml" />
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  {image && <meta property="og:image" content={new URL(image, Astro.site)} />}
+
+  <!-- Twitter, falls back to Open Graph for the rest -->
+  <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+</head>

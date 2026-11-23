@@ -1,0 +1,186 @@
+---
+interface Point {
+  x: number;
+  y: number;
+  key: string;
+  value: string;
+  annotation?: string;
+}
+
+interface Series {
+  label: string;
+  tone: 'main' | 'blue' | 'slate';
+  connect?: boolean;
+  points: Point[];
+}
+
+interface Props {
+  id: string;
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  xTicks: number[];
+  yTicks: number[];
+  xDomain?: [number, number];
+  series: Series[];
+  lang?: 'zh' | 'en';
+}
+
+const { id, title, xLabel, yLabel, xTicks, yTicks, xDomain, series, lang = 'en' } = Astro.props;
+const width = 360;
+const height = 218;
+const left = 49;
+const right = 344;
+const top = 14;
+const bottom = 172;
+const [xMin, xMax] = xDomain ?? [xTicks[0], xTicks[xTicks.length - 1]];
+const yMin = yTicks[0];
+const yMax = yTicks[yTicks.length - 1];
+const x = (value: number) => left + (right - left) * (value - xMin) / (xMax - xMin);
+const y = (value: number) => bottom - (bottom - top) * (value - yMin) / (yMax - yMin);
+---
+
+<research-plot>
+  <h5 id={`${id}-title`}>{title}</h5>
+  <div class="legend">
+    {series.map(({ label, tone, connect = true }) => (
+      <span class="legend-item" data-tone={tone}>
+        <svg aria-hidden="true" width="27" height="14" viewBox="0 0 27 14">
+          <path d={connect ? 'M0 7h27' : 'M9 7h9'} stroke="currentColor" />
+        </svg>
+        {label}
+      </span>
+    ))}
+  </div>
+  <svg class="plot" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`}>
+    <desc id={`${id}-description`}>{lang === 'zh'
+      ? `按${xLabel}展示${yLabel}。序列：${series.map(({ label }) => label).join('、')}。使用左右方向键浏览数值。`
+      : `${yLabel} by ${xLabel}. Series: ${series.map(({ label }) => label).join(', ')}. Use the left and right arrow keys to browse values.`}</desc>
+    {yTicks.map((tick) => (
+      <g>
+        <path class="grid-line" d={`M${left} ${y(tick)}H${right}`} />
+        <text class="tick" x={left - 7} y={y(tick)} dy="0.35em" text-anchor="end">{tick}</text>
+      </g>
+    ))}
+    <path class="axis" d={`M${left} ${top}V${bottom}H${right}`} />
+    {xTicks.map((tick) => (
+      <g>
+        <path class="axis" d={`M${x(tick)} ${bottom}v4`} />
+        <text class="tick" x={x(tick)} y={bottom + 17} text-anchor="middle">{tick}</text>
+      </g>
+    ))}
+    <text class="axis-label" x={(left + right) / 2} y={height - 6} text-anchor="middle">{xLabel}</text>
+    <text class="axis-label" transform={`translate(12 ${(top + bottom) / 2}) rotate(-90)`} text-anchor="middle">{yLabel}</text>
+    {series.map(({ connect = true, label, tone, points }) => (
+      <g class="series" data-tone={tone}>
+        {connect && <polyline class="curve" points={points.map((point) => `${x(point.x)},${y(point.y)}`).join(' ')} />}
+        {points.map((point) => (
+          <g class="point" transform={`translate(${x(point.x)} ${y(point.y)})`} data-key={point.key} data-value={`${label}: ${point.value}`}>
+            <circle class="marker" r="4" fill="currentColor" />
+            <circle r="9" fill="transparent" class="target" />
+            <title>{point.key} · {label}: {point.value}</title>
+            {point.annotation && <text class="annotation" x={x(point.x) > right - 43 ? -7 : 7} y="-7" text-anchor={x(point.x) > right - 43 ? 'end' : 'start'}>{point.annotation}</text>}
+          </g>
+        ))}
+      </g>
+    ))}
+  </svg>
+  <output hidden aria-live="polite"></output>
+</research-plot>
+
+<script>
+  class ResearchPlot extends HTMLElement {
+    connectedCallback() {
+      const plot = this.querySelector<SVGSVGElement>('.plot');
+      const output = this.querySelector('output');
+      if (!plot || !output || this.dataset.ready) return;
+      this.dataset.ready = 'true';
+
+      const points = [...this.querySelectorAll<SVGGElement>('[data-key]')];
+      const keys = [...new Set(points.map((point) => point.dataset.key!))];
+      if (!keys.length) return;
+      let selectedIndex: number | undefined;
+
+      const showPoint = (key?: string) => {
+        const matches = key ? points.filter((point) => point.dataset.key === key) : [];
+        for (const point of points) point.classList.toggle('active', matches.includes(point));
+        const text = matches.length ? `${key} · ${matches.map((point) => point.dataset.value).join(' · ')}` : '';
+        if (output.textContent !== text) output.textContent = text;
+      };
+
+      const showSelection = () => showPoint(selectedIndex === undefined ? undefined : keys[selectedIndex]);
+      const clearSelection = () => {
+        selectedIndex = undefined;
+        showSelection();
+      };
+
+      output.hidden = false;
+      plot.setAttribute('tabindex', '0');
+      plot.addEventListener('keydown', (event) => {
+        const { key } = event;
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape'].includes(key)) return;
+        event.preventDefault();
+        if (key === 'Escape') {
+          clearSelection();
+          return;
+        }
+        const last = keys.length - 1;
+        if (key === 'Home') selectedIndex = 0;
+        else if (key === 'End') selectedIndex = last;
+        else if (key === 'ArrowLeft') selectedIndex = Math.max(0, (selectedIndex ?? last + 1) - 1);
+        else selectedIndex = Math.min(last, (selectedIndex ?? -1) + 1);
+        showSelection();
+      });
+
+      for (const point of points) {
+        const key = point.dataset.key!;
+        point.addEventListener('pointerenter', (event) => {
+          if (event.pointerType === 'mouse') showPoint(key);
+        });
+        point.addEventListener('pointerleave', showSelection);
+        point.addEventListener('click', () => {
+          selectedIndex = keys.indexOf(key);
+          showSelection();
+        });
+      }
+      plot.addEventListener('click', (event) => {
+        if (event.target instanceof Element && !event.target.closest('[data-key]')) clearSelection();
+      });
+    }
+  }
+  if (!customElements.get('research-plot')) customElements.define('research-plot', ResearchPlot);
+</script>
+
+<style>
+  research-plot {
+    display: block;
+    min-width: 0;
+    container-type: inline-size;
+    --plot-main: light-dark(var(--color-sky-ink), #e4ecff);
+    --plot-blue: light-dark(var(--color-klein-light), #a3bbff);
+    --plot-slate: light-dark(var(--color-sky-gray), #c5cde1);
+  }
+  [data-tone='main'] { --series-ink: var(--plot-main); }
+  [data-tone='blue'] { --series-ink: var(--plot-blue); }
+  [data-tone='slate'] { --series-ink: var(--plot-slate); }
+  .series, .legend-item svg { color: var(--series-ink); }
+  h5 { font-size: .9rem; margin: 0 0 .4rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: .25rem .8rem; font-size: .72rem; }
+  .legend-item { display: inline-flex; align-items: center; gap: .35rem; }
+  .plot:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  .plot { display: block; width: 100%; max-width: 36rem; }
+  .plot text { fill: currentColor; font-size: 11px; }
+  .plot .axis-label { font-weight: 700; }
+  .grid-line, .axis, .curve { stroke: currentColor; fill: none; }
+  .grid-line { opacity: .18; }
+  .curve { stroke-width: 1.55; stroke-linejoin: round; }
+  .marker { opacity: 0; pointer-events: none; }
+  .point.active .marker { opacity: 1; }
+  .target { cursor: pointer; }
+  .annotation { pointer-events: none; }
+  output { display: block; font-size: .72rem; min-height: 3.5em; padding-top: .15rem; }
+  output[hidden] { display: none; }
+  @container (max-width: 300px) {
+    .plot text { font-size: 12.5px; }
+  }
+</style>

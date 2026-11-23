@@ -1,0 +1,23 @@
+---
+import { Content as IntroZh } from '@/content/intro.mdx';
+import { Content as IntroEn } from '@/content/intro.en.mdx';
+---
+
+<section>
+  <div data-lang-only='zh'>
+    <IntroZh />
+  </div>
+  <div data-lang-only='en'>
+    <IntroEn />
+  </div>
+</section>
+
+<style>
+  section {
+    margin-bottom: 3em;
+  }
+
+  section :global(p) {
+    margin-bottom: 1em;
+  }
+</style>
